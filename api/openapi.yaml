@@ -1,66 +1,26 @@
 openapi: 3.0.1
 info:
-  description: "\r\n    Introduction:\r\n\r\nPassportPDF API is a REST API that lets\
-    \ you perform complex operations on documents and images easily.\r\nYou may consume\
-    \ the API by using our.NET SDK (other platforms / languages are soon to come),\
-    \ or any REST client by sending your requests to the appropriate endpoints. \r\
-    \nA list of all the available endpoints can be found on the API reference page\
-    \ at https://passportpdfapi.com/references/api/index.html\r\n\r\n    Authentication:\r\
-    \n\r\nEach available operation has a predefined cost, expressed as a number of\
-    \ tokens.\r\nThese tokens are deducted from your \"passport,\" which has a unique\
-    \ identifier that acts as an API key. This key is, therefore, required to be provided\
-    \ with each request for the latter to be honored(except if the operation does\
-    \ not have a cost, typically when you request a simple data with a GET).\r\nYour\
-    \ key must be included in the header of the request, under the name \"X-PassportPdf-API-Key.\"\
-    \r\nIf you are using the.NET SDK, you can either set your key in the ApiKey property\
-    \ of your API instance(PdfApi or ImageApi, for example) or set it globally in\
-    \ the GlobalConfiguration instance if you want to set it once for the whole life\
-    \ cycle of your application.\r\n\r\n\r\n    Communication with the API:\r\n\r\n\
-    All the available actions are listed on the API reference page, as previously\
-    \ mentioned.\r\nThere are several different controllers, i.e., routes, which categorize\
-    \ the actions.For example, you may use the PDF controller(\"/api/pdf\" route)\
-    \ to perform PDF - related operations, and the Image controller(\"/api/image\"\
-    ) for images.\r\nEach action defines what kind of parameters(if any) is expected,\
-    \ and what kind of response is served.Parameters and responses are represented\
-    \ using data models, or \"schemas,\" and are listed in the \"Schemas\" section\
-    \ of the reference. \r\nParameters and response models of a given action are both\
-    \ prefixed by the controller name, the action name, and \"Parameters\" / \"Response,\"\
-    \ e.g. \"api/pdf/reduce\" respectively receives and serves a PdfReduceParameters\
-    \ and PdfReduceResponse models.\r\nUsing the .NET SDK, you will find the objects\
-    \ to interact with the different controllers in the PassportPDF.Api namespace\
-    \ and all the schemas in the PassportPDF.Model namespace.\r\n\r\n    Processing\
-    \ documents:\r\n\r\nEach document manipulation starts with importing the file\
-    \ onto the API.\r\nThe LoadDocument action of the PDF controller lets you import\
-    \ your document as a PDF.\r\nNote that the GetPDFImportSupportedFileExtensions\
-    \ action of the same controller will let you know all the different types of files\
-    \ that you may import as a PDF. LoadDocument responds with a JSON-serialized PdfLoadDocumentResponse\
-    \ model, which contains a \"FileId\" property.This identifier is required for\
-    \ the API to know about your document for further manipulations, hence the presence\
-    \ of a \"FileId\" property in the PdfReduceParameters schema (and many other parameters\
-    \ schemas). To download the changes made to a file, you need, of course, to download\
-    \ the new version of the file from the API.\r\nTo save your document as a PDF,\
-    \ you will need to use the SaveDocument action of the PDF controller and provide\
-    \ a PdfSaveDocumentParameters data model that contains the identifier of your\
-    \ file.\r\n\r\n    Errors:\r\n\r\nConventional HTTP response codes are used to\
-    \ indicate the success or failure of an API request. \r\nThe Error data model\
-    \ also defines some information about an error that occurred on the API. \r\n\
-    Each response model has an Error in its definition, and its sole existence in\
-    \ the serialized response - which should thus always be checked - indicates that\
-    \ something went wrong.\r\nAmong the information given by the Error schema, \"\
-    ResultCode\" specifies a value of the \"PassportPDFStatus\" enumeration, that\
-    \ defines a first level of error information. \"InternalErrorId\" defines a unique\
-    \ identifier for the error, which comes very handy for us to troubleshoot any\
-    \ issue you may encounter quickly.\r\n\r\n    Efficiency considerations:\r\n\r\
-    \nMultipart upload/download is available and lets you directly stream a file to/from\
-    \ the API.\r\nIn the PDF controller, LoadDocument/LoadDocumentMultipart and SaveDocument/SaveDocumentToFile\
-    \ may be used to upload/download a document using respectively binary data serialization\
-    \ and streaming multipart HTTP requests.\r\nThe second approach should be favored\
-    \ when dealing with large files, as it will be much more efficient in that context.\r\
-    \n"
+  description: Another brick in the cloud
   title: PassportPDF API
   version: 1.0.1
 servers:
 - url: https://passportpdfapi.com
+tags:
+- description: All the configuration-related APIs.
+  name: Config
+- description: All the document-related APIs.
+  name: Document
+- description: All the DocuVieware-related APIs.
+  name: DocuVieware
+- description: All the image-related APIs. You can use ImageGetSupportedFileExtensions
+    to obtain all the file extensions which can be loaded through these APIs.
+  name: Image
+- description: Retrieve information about passports.
+  name: PassportManager
+- description: Retrieve information about PassportPDF desktop applications.
+  name: PassportPDFApplicationManager
+- description: All the PDF-related APIs.
+  name: PDF
 paths:
   /api/config/ConfigGetAPIVersion:
     get:
@@ -218,6 +178,9 @@ paths:
       summary: Closes a previously uploaded document.
       tags:
       - Document
+      x-operation-cost:
+        mode: Standard
+        baseCost: 0
   /api/document/DocumentGetPreview:
     post:
       operationId: DocumentGetPreview
@@ -251,10 +214,135 @@ paths:
               schema:
                 $ref: '#/components/schemas/DocumentGetPreviewResponse'
           description: Success
-      summary: Gets the format, the page count, and a thumbnail of the provided, or
-        a previously uploaded document.
+      summary: Gets the format, the page count and a thumbnail of a previously uploaded
+        document.
       tags:
       - Document
+      x-operation-cost:
+        mode: Standard
+        baseCost: 1
+  /api/document/DocumentLoad:
+    post:
+      operationId: DocumentLoad
+      requestBody:
+        content:
+          application/json-patch+json:
+            schema:
+              $ref: '#/components/schemas/LoadDocumentFromByteArrayParameters'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoadDocumentFromByteArrayParameters'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/LoadDocumentFromByteArrayParameters'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/LoadDocumentFromByteArrayParameters'
+        description: A LoadDocumentFromByteArrayParameters object specifying the parameters
+          of the action.
+        required: true
+      responses:
+        "200":
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/DocumentLoadResponse'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentLoadResponse'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/DocumentLoadResponse'
+          description: Success
+      summary: Loads the provided document file.
+      tags:
+      - Document
+      x-operation-cost:
+        mode: PerSize
+        baseCost: 1
+  /api/document/DocumentLoadFromURI:
+    post:
+      operationId: DocumentLoadFromURI
+      requestBody:
+        content:
+          application/json-patch+json:
+            schema:
+              $ref: '#/components/schemas/LoadDocumentFromURIParameters'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoadDocumentFromURIParameters'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/LoadDocumentFromURIParameters'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/LoadDocumentFromURIParameters'
+        description: A LoadDocumentFromURIParameters object specifying the parameters
+          of the action.
+        required: true
+      responses:
+        "200":
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/DocumentLoadResponse'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentLoadResponse'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/DocumentLoadResponse'
+          description: Success
+      summary: Loads the provided document file from an URI.
+      tags:
+      - Document
+      x-operation-cost:
+        mode: PerSize
+        baseCost: 1
+  /api/document/DocumentLoadMultipart:
+    post:
+      operationId: DocumentLoadMultipart
+      requestBody:
+        $ref: '#/components/requestBodies/inline_object'
+        content:
+          multipart/form-data:
+            encoding:
+              fileData:
+                contentType: application/octet-stream
+                style: form
+              loadDocumentParameters:
+                contentType: application/json
+                style: form
+            schema:
+              properties:
+                fileData:
+                  description: The data of the document.
+                  format: binary
+                  type: string
+                loadDocumentParameters:
+                  $ref: '#/components/schemas/LoadDocumentParameters'
+              required:
+              - fileData
+              type: object
+      responses:
+        "200":
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/DocumentLoadResponse'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentLoadResponse'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/DocumentLoadResponse'
+          description: Success
+      summary: Loads the provided document file using Multipart Upload.
+      tags:
+      - Document
+      x-operation-cost:
+        mode: PerSize
+        baseCost: 1
   /api/docuvieware/DocuViewareGetControl:
     post:
       operationId: DocuViewareGetControl
@@ -272,6 +360,8 @@ paths:
           application/*+json:
             schema:
               $ref: '#/components/schemas/DocuViewareGetControlParameters'
+        description: A DocuViewareGetControlParameters object specifying the parameters
+          of the action.
         required: true
       responses:
         "200":
@@ -286,8 +376,15 @@ paths:
               schema:
                 $ref: '#/components/schemas/DocuViewareGetControlResponse'
           description: Success
+      summary: Gets the HTML dom of a DocuVieware control.
       tags:
       - DocuVieware
+      x-operation-cost:
+        mode: Special
+        baseCost: 0
+        special: <strong>3</strong> tokens are charged for each document loaded through
+          the delivered DocuVieware control, as well as <strong>1</strong> token per
+          10 MB of their total size.
   /api/docuvieware/DocuViewareGetVersion:
     get:
       operationId: DocuViewareGetVersion
@@ -304,8 +401,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/StringResponse'
           description: Success
+      summary: Get the DocuVieware engine version.
       tags:
       - DocuVieware
+      x-operation-cost:
+        mode: Standard
+        baseCost: 0
   /api/docuvieware/DocuViewareSave:
     post:
       operationId: DocuViewareSave
@@ -323,6 +424,8 @@ paths:
           application/*+json:
             schema:
               $ref: '#/components/schemas/DocuViewareSaveParameters'
+        description: A DocuViewareSaveParameters object specifying the parameters
+          of the action.
         required: true
       responses:
         "200":
@@ -337,8 +440,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/DocuViewareSaveResponse'
           description: Success
+      summary: Saves the document being handled by a specific DocuVieware control,
+        in its current state.
       tags:
       - DocuVieware
+      x-operation-cost:
+        mode: Standard
+        baseCost: 1
   /api/image/ImageAdjust:
     post:
       operationId: ImageAdjust
@@ -375,6 +483,9 @@ paths:
       summary: Adjusts a previously uploaded image.
       tags:
       - Image
+      x-operation-cost:
+        mode: PerPage
+        baseCost: 1
   /api/image/ImageAutoCrop:
     post:
       operationId: ImageAutoCrop
@@ -411,6 +522,9 @@ paths:
       summary: Automatically crops a previously uploaded image.
       tags:
       - Image
+      x-operation-cost:
+        mode: PerPage
+        baseCost: 2
   /api/image/ImageCleanupDocument:
     post:
       operationId: ImageCleanupDocument
@@ -447,6 +561,9 @@ paths:
       summary: Cleanup a previously uploaded image.
       tags:
       - Image
+      x-operation-cost:
+        mode: PerPage
+        baseCost: 1
   /api/image/ImageCloneRegions:
     post:
       operationId: ImageCloneRegions
@@ -483,6 +600,9 @@ paths:
       summary: Clones regions from a previously uploaded image into new images.
       tags:
       - Image
+      x-operation-cost:
+        mode: PerPage
+        baseCost: 1
   /api/image/ImageClose:
     post:
       operationId: ImageClose
@@ -519,6 +639,9 @@ paths:
       summary: Closes a previously uploaded image.
       tags:
       - Image
+      x-operation-cost:
+        mode: Standard
+        baseCost: 0
   /api/image/ImageConvertColorDepth:
     post:
       operationId: ImageConvertColorDepth
@@ -555,6 +678,9 @@ paths:
       summary: Converts the color depth of a previously uploaded image.
       tags:
       - Image
+      x-operation-cost:
+        mode: PerPage
+        baseCost: 1
   /api/image/ImageCrop:
     post:
       operationId: ImageCrop
@@ -591,6 +717,9 @@ paths:
       summary: Crops a previously uploaded image.
       tags:
       - Image
+      x-operation-cost:
+        mode: PerPage
+        baseCost: 2
   /api/image/ImageDeletePage:
     post:
       operationId: ImageDeletePage
@@ -627,6 +756,9 @@ paths:
       summary: Deletes a page range from a previously uploaded image.
       tags:
       - Image
+      x-operation-cost:
+        mode: Standard
+        baseCost: 1
   /api/image/ImageDetectBlankPages:
     post:
       operationId: ImageDetectBlankPages
@@ -664,6 +796,9 @@ paths:
         to remove them.
       tags:
       - Image
+      x-operation-cost:
+        mode: PerPage
+        baseCost: 1
   /api/image/ImageDetectColor:
     post:
       operationId: ImageDetectColor
@@ -700,6 +835,9 @@ paths:
       summary: Performs color detection  on a previously uploaded image.
       tags:
       - Image
+      x-operation-cost:
+        mode: PerPage
+        baseCost: 2
   /api/image/ImageDetectPageOrientation:
     post:
       operationId: ImageDetectPageOrientation
@@ -737,6 +875,9 @@ paths:
         and offers to automatically rotate them.
       tags:
       - Image
+      x-operation-cost:
+        mode: PerPage
+        baseCost: 1
   /api/image/ImageFilter:
     post:
       operationId: ImageFilter
@@ -773,6 +914,9 @@ paths:
       summary: Applies filters to a previously uploaded image.
       tags:
       - Image
+      x-operation-cost:
+        mode: PerPage
+        baseCost: 1
   /api/image/ImageGetPageThumbnail:
     post:
       operationId: ImageGetPageThumbnail
@@ -810,6 +954,9 @@ paths:
         previously uploaded image.
       tags:
       - Image
+      x-operation-cost:
+        mode: PerPage
+        baseCost: 1
   /api/image/ImageGetSupportedFileExtensions:
     get:
       operationId: ImageGetSupportedFileExtensions
@@ -829,6 +976,9 @@ paths:
       summary: Gets the supported file extensions by the image loading actions.
       tags:
       - Image
+      x-operation-cost:
+        mode: Standard
+        baseCost: 0
   /api/image/ImageLoad:
     post:
       operationId: ImageLoad
@@ -866,11 +1016,14 @@ paths:
         \ by the GetSupportedImageFileExtensions action."
       tags:
       - Image
+      x-operation-cost:
+        mode: PerSize
+        baseCost: 1
   /api/image/ImageLoadMultipart:
     post:
       operationId: ImageLoadMultipart
       requestBody:
-        $ref: '#/components/requestBodies/inline_object'
+        $ref: '#/components/requestBodies/inline_object_1'
         content:
           multipart/form-data:
             encoding:
@@ -908,6 +1061,9 @@ paths:
         \ image formats can be retrieved by the GetSupportedImageFileExtensions action."
       tags:
       - Image
+      x-operation-cost:
+        mode: PerSize
+        baseCost: 1
   /api/image/ImageMICR:
     post:
       operationId: ImageMICR
@@ -945,6 +1101,9 @@ paths:
         uploaded image.
       tags:
       - Image
+      x-operation-cost:
+        mode: PerPage
+        baseCost: 1
   /api/image/ImageReadBarcodes:
     post:
       operationId: ImageReadBarcodes
@@ -981,6 +1140,9 @@ paths:
       summary: Reads barcodes from a previously uploaded image.
       tags:
       - Image
+      x-operation-cost:
+        mode: PerPage
+        baseCost: 2
   /api/image/ImageResize:
     post:
       operationId: ImageResize
@@ -1017,6 +1179,9 @@ paths:
       summary: Resizes a previously uploaded image.
       tags:
       - Image
+      x-operation-cost:
+        mode: PerPage
+        baseCost: 2
   /api/image/ImageRotate:
     post:
       operationId: ImageRotate
@@ -1053,6 +1218,9 @@ paths:
       summary: Rotates and/or flips a previously uploaded image.
       tags:
       - Image
+      x-operation-cost:
+        mode: PerPage
+        baseCost: 1
   /api/image/ImageSaveAsJPEG:
     post:
       operationId: ImageSaveAsJPEG
@@ -1086,9 +1254,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/ImageSaveAsJPEGResponse'
           description: Success
-      summary: Saves a previously uploaded image as JPEG.
+      summary: Saves a previously uploaded image as JPEG, and sends the file data
+        in a JSON-serialized object.
       tags:
       - Image
+      x-operation-cost:
+        mode: Standard
+        baseCost: 2
   /api/image/ImageSaveAsJPEGFile:
     post:
       operationId: ImageSaveAsJPEGFile
@@ -1125,9 +1297,13 @@ paths:
                 format: binary
                 type: string
           description: Success
-      summary: Saves a previously uploaded image as JPEG.
+      summary: Saves a previously uploaded image as JPEG, and streams the file binary
+        data to the response (this is the most efficient download method).
       tags:
       - Image
+      x-operation-cost:
+        mode: PerPage
+        baseCost: 1
   /api/image/ImageSaveAsPDF:
     post:
       operationId: ImageSaveAsPDF
@@ -1161,9 +1337,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/ImageSaveAsPDFResponse'
           description: Success
-      summary: Saves a previously uploaded image as PDF.
+      summary: Saves a previously uploaded image as PDF, and sends the file data in
+        a JSON-serialized object.
       tags:
       - Image
+      x-operation-cost:
+        mode: Standard
+        baseCost: 4
   /api/image/ImageSaveAsPDFFile:
     post:
       operationId: ImageSaveAsPDFFile
@@ -1200,9 +1380,13 @@ paths:
                 format: binary
                 type: string
           description: Success
-      summary: Saves a previously uploaded image as PDF.
+      summary: Saves a previously uploaded image as PDF, and streams the file binary
+        data to the response (this is the most efficient download method).
       tags:
       - Image
+      x-operation-cost:
+        mode: Standard
+        baseCost: 4
   /api/image/ImageSaveAsPDFMRC:
     post:
       operationId: ImageSaveAsPDFMRC
@@ -1236,9 +1420,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/ImageSaveAsPDFMRCResponse'
           description: Success
-      summary: Saves a previously uploaded image as PDF using MRC compression.
+      summary: Saves a previously uploaded image as PDF using MRC compression, and
+        sends the file data in a JSON-serialized object.
       tags:
       - Image
+      x-operation-cost:
+        mode: PerPage
+        baseCost: 4
   /api/image/ImageSaveAsPDFMRCFile:
     post:
       operationId: ImageSaveAsPDFMRCFile
@@ -1275,9 +1463,14 @@ paths:
                 format: binary
                 type: string
           description: Success
-      summary: Saves a previously uploaded image as PDF using MRC compression.
+      summary: Saves a previously uploaded image as PDF using MRC compression, and
+        streams the file binary data to the response (this is the most efficient download
+        method).
       tags:
       - Image
+      x-operation-cost:
+        mode: PerPage
+        baseCost: 4
   /api/image/ImageSaveAsPNG:
     post:
       operationId: ImageSaveAsPNG
@@ -1311,9 +1504,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/ImageSaveAsPNGResponse'
           description: Success
-      summary: Saves a previously uploaded image as PNG.
+      summary: Saves a previously uploaded image as PNG, and sends the file data in
+        a JSON-serialized object.
       tags:
       - Image
+      x-operation-cost:
+        mode: Standard
+        baseCost: 2
   /api/image/ImageSaveAsPNGFile:
     post:
       operationId: ImageSaveAsPNGFile
@@ -1350,9 +1547,13 @@ paths:
                 format: binary
                 type: string
           description: Success
-      summary: Saves a previously uploaded image as PNG.
+      summary: Saves a previously uploaded image as PNG, and streams the file binary
+        data to the response (this is the most efficient download method).
       tags:
       - Image
+      x-operation-cost:
+        mode: PerPage
+        baseCost: 1
   /api/image/ImageSaveAsTIFF:
     post:
       operationId: ImageSaveAsTIFF
@@ -1386,9 +1587,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/ImageSaveAsTIFFResponse'
           description: Success
-      summary: Saves a previously uploaded image as TIFF.
+      summary: Saves a previously uploaded image as TIFF, and sends the file data
+        in a JSON-serialized object.
       tags:
       - Image
+      x-operation-cost:
+        mode: Standard
+        baseCost: 2
   /api/image/ImageSaveAsTIFFFile:
     post:
       operationId: ImageSaveAsTIFFFile
@@ -1425,9 +1630,13 @@ paths:
                 format: binary
                 type: string
           description: Success
-      summary: Saves a previously uploaded image as TIFF.
+      summary: Saves a previously uploaded image as TIFF, and streams the file binary
+        data to the response (this is the most efficient download method).
       tags:
       - Image
+      x-operation-cost:
+        mode: PerPage
+        baseCost: 1
   /api/image/ImageSaveAsTIFFMultipage:
     post:
       operationId: ImageSaveAsTIFFMultipage
@@ -1461,9 +1670,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/ImageSaveAsTIFFMultipageResponse'
           description: Success
-      summary: Saves a previously uploaded image as multipage TIFF.
+      summary: Saves a previously uploaded image as multipage TIFF, and sends the
+        file data in a JSON-serialized object.
       tags:
       - Image
+      x-operation-cost:
+        mode: Standard
+        baseCost: 2
   /api/image/ImageSaveAsTIFFMultipageFile:
     post:
       operationId: ImageSaveAsTIFFMultipageFile
@@ -1500,9 +1713,13 @@ paths:
                 format: binary
                 type: string
           description: Success
-      summary: Saves a previously uploaded image as multipage TIFF.
+      summary: Saves a previously uploaded image as multipage TIFF, and streams the
+        file binary data to the response (this is the most efficient download method).
       tags:
       - Image
+      x-operation-cost:
+        mode: Standard
+        baseCost: 2
   /api/image/ImageSwapPages:
     post:
       operationId: ImageSwapPages
@@ -1539,6 +1756,9 @@ paths:
       summary: Swaps two pages from a previously uploaded image.
       tags:
       - Image
+      x-operation-cost:
+        mode: Standard
+        baseCost: 1
   /api/passportmanager/PassportManagerGetPassportInfo:
     get:
       operationId: PassportManagerGetPassportInfo
@@ -1707,6 +1927,9 @@ paths:
       summary: Annotates a previously uploaded document.
       tags:
       - PDF
+      x-operation-cost:
+        mode: Standard
+        baseCost: 1
   /api/pdf/AutoDeskew:
     post:
       operationId: AutoDeskew
@@ -1743,6 +1966,9 @@ paths:
       summary: Performs auto deskew on a page range of a previously uploaded document.
       tags:
       - PDF
+      x-operation-cost:
+        mode: PerPage
+        baseCost: 1
   /api/pdf/ClearPage:
     post:
       operationId: ClearPage
@@ -1779,6 +2005,9 @@ paths:
       summary: Clears a page range from a previously uploaded document.
       tags:
       - PDF
+      x-operation-cost:
+        mode: Standard
+        baseCost: 1
   /api/pdf/ClonePage:
     post:
       operationId: ClonePage
@@ -1816,6 +2045,9 @@ paths:
         previously uploaded document.
       tags:
       - PDF
+      x-operation-cost:
+        mode: Standard
+        baseCost: 2
   /api/pdf/ClosePDF:
     post:
       operationId: ClosePDF
@@ -1852,6 +2084,9 @@ paths:
       summary: Closes a previously uploaded document.
       tags:
       - PDF
+      x-operation-cost:
+        mode: Standard
+        baseCost: 0
   /api/pdf/ConvertToPDFA:
     post:
       operationId: ConvertToPDFA
@@ -1888,6 +2123,9 @@ paths:
       summary: Converts a previously uploaded document to PDF/A.
       tags:
       - PDF
+      x-operation-cost:
+        mode: Standard
+        baseCost: 10
   /api/pdf/DeletePage:
     post:
       operationId: DeletePage
@@ -1924,6 +2162,9 @@ paths:
       summary: Deletes a page range from a previously uploaded document.
       tags:
       - PDF
+      x-operation-cost:
+        mode: Standard
+        baseCost: 1
   /api/pdf/DetectPageOrientation:
     post:
       operationId: DetectPageOrientation
@@ -1961,6 +2202,9 @@ paths:
         and offers to automatically rotate them.
       tags:
       - PDF
+      x-operation-cost:
+        mode: PerPage
+        baseCost: 1
   /api/pdf/DigiSign:
     post:
       operationId: DigiSign
@@ -1997,6 +2241,9 @@ paths:
       summary: Signs a previously uploaded document digitally.
       tags:
       - PDF
+      x-operation-cost:
+        mode: Standard
+        baseCost: 5
   /api/pdf/DrawImage:
     post:
       operationId: DrawImage
@@ -2033,6 +2280,9 @@ paths:
       summary: Draws an image on a page range of a previously uploaded document.
       tags:
       - PDF
+      x-operation-cost:
+        mode: Standard
+        baseCost: 1
   /api/pdf/ExtractPage:
     post:
       operationId: ExtractPage
@@ -2070,6 +2320,9 @@ paths:
         or several new documents.
       tags:
       - PDF
+      x-operation-cost:
+        mode: Standard
+        baseCost: 5
   /api/pdf/ExtractText:
     post:
       operationId: ExtractText
@@ -2106,6 +2359,9 @@ paths:
       summary: Extracts text from the document pages.
       tags:
       - PDF
+      x-operation-cost:
+        mode: Standard
+        baseCost: 1
   /api/pdf/Flatten:
     post:
       operationId: Flatten
@@ -2142,6 +2398,9 @@ paths:
         uploaded document.
       tags:
       - PDF
+      x-operation-cost:
+        mode: Standard
+        baseCost: 2
   /api/pdf/GetInfo:
     post:
       operationId: GetInfo
@@ -2178,6 +2437,9 @@ paths:
       summary: Gets information about a previously uploaded document.
       tags:
       - PDF
+      x-operation-cost:
+        mode: Standard
+        baseCost: 1
   /api/pdf/GetPageThumbnail:
     post:
       operationId: GetPageThumbnail
@@ -2215,6 +2477,9 @@ paths:
         previously uploaded document.
       tags:
       - PDF
+      x-operation-cost:
+        mode: PerPage
+        baseCost: 1
   /api/pdf/GetPDFImportSupportedFileExtensions:
     get:
       operationId: GetPDFImportSupportedFileExtensions
@@ -2234,6 +2499,9 @@ paths:
       summary: Gets the supported file extensions by the LoadDocumentAsPDF action.
       tags:
       - PDF
+      x-operation-cost:
+        mode: Standard
+        baseCost: 0
   /api/pdf/InsertImage:
     post:
       operationId: InsertImage
@@ -2270,6 +2538,9 @@ paths:
       summary: Inserts an image on a new page of a previously uploaded document.
       tags:
       - PDF
+      x-operation-cost:
+        mode: Standard
+        baseCost: 1
   /api/pdf/InsertNewPage:
     post:
       operationId: InsertNewPage
@@ -2307,6 +2578,9 @@ paths:
         uploaded document.
       tags:
       - PDF
+      x-operation-cost:
+        mode: Standard
+        baseCost: 1
   /api/pdf/InsertPageNumber:
     post:
       operationId: InsertPageNumber
@@ -2343,6 +2617,9 @@ paths:
       summary: Inserts page number(s) on a document.
       tags:
       - PDF
+      x-operation-cost:
+        mode: Standard
+        baseCost: 1
   /api/pdf/InsertText:
     post:
       operationId: InsertText
@@ -2379,6 +2656,9 @@ paths:
       summary: Inserts text on a document.
       tags:
       - PDF
+      x-operation-cost:
+        mode: Standard
+        baseCost: 1
   /api/pdf/Linearize:
     post:
       operationId: Linearize
@@ -2415,6 +2695,9 @@ paths:
       summary: Linearizes a previously uploaded document.
       tags:
       - PDF
+      x-operation-cost:
+        mode: Standard
+        baseCost: 2
   /api/pdf/LoadDocument:
     post:
       operationId: LoadDocumentAsPDF
@@ -2452,11 +2735,14 @@ paths:
         \ can be retrieved by the GetPDFImportSupportedFileExtensions action."
       tags:
       - PDF
+      x-operation-cost:
+        mode: PerSize
+        baseCost: 1
   /api/pdf/LoadDocumentAsPDFMultipart:
     post:
       operationId: LoadDocumentAsPDFMultipart
       requestBody:
-        $ref: '#/components/requestBodies/inline_object_1'
+        $ref: '#/components/requestBodies/inline_object_2'
         content:
           multipart/form-data:
             encoding:
@@ -2495,6 +2781,9 @@ paths:
         \ action."
       tags:
       - PDF
+      x-operation-cost:
+        mode: PerSize
+        baseCost: 1
   /api/pdf/Merge:
     post:
       operationId: Merge
@@ -2531,6 +2820,9 @@ paths:
       summary: Merges several previously uploaded documents into a new PDF.
       tags:
       - PDF
+      x-operation-cost:
+        mode: Standard
+        baseCost: 5
   /api/pdf/MergePages:
     post:
       operationId: MergePages
@@ -2567,6 +2859,9 @@ paths:
         into one single page.
       tags:
       - PDF
+      x-operation-cost:
+        mode: Standard
+        baseCost: 1
   /api/pdf/MovePage:
     post:
       operationId: MovePage
@@ -2603,6 +2898,9 @@ paths:
       summary: Moves a page range from a previously uploaded document.
       tags:
       - PDF
+      x-operation-cost:
+        mode: Standard
+        baseCost: 1
   /api/pdf/OCR:
     post:
       operationId: OCR
@@ -2640,6 +2938,9 @@ paths:
         \ each processed page.\r\nNo token is charged for blank pages."
       tags:
       - PDF
+      x-operation-cost:
+        mode: PerPage
+        baseCost: 12
   /api/pdf/Protect:
     post:
       operationId: Protect
@@ -2676,6 +2977,9 @@ paths:
       summary: Protects a previously uploaded document.
       tags:
       - PDF
+      x-operation-cost:
+        mode: Standard
+        baseCost: 2
   /api/pdf/ReadBarcodes:
     post:
       operationId: ReadBarcodes
@@ -2712,6 +3016,9 @@ paths:
       summary: Reads barcodes from a previously uploaded document.
       tags:
       - PDF
+      x-operation-cost:
+        mode: PerPage
+        baseCost: 2
   /api/pdf/Reduce:
     post:
       operationId: Reduce
@@ -2748,6 +3055,11 @@ paths:
       summary: Reduces the size of a previously uploaded document.
       tags:
       - PDF
+      x-operation-cost:
+        mode: Standard
+        baseCost: 5
+        extra: If MRC compression is enabled 4 additional tokens per MRC encoded image
+          will be charged.
   /api/pdf/RemovePageFormFields:
     post:
       operationId: RemovePageFormFields
@@ -2785,6 +3097,49 @@ paths:
         document.
       tags:
       - PDF
+      x-operation-cost:
+        mode: Standard
+        baseCost: 1
+  /api/pdf/RemoveText:
+    post:
+      operationId: RemoveText
+      requestBody:
+        content:
+          application/json-patch+json:
+            schema:
+              $ref: '#/components/schemas/PdfRemoveTextParameters'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PdfRemoveTextParameters'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/PdfRemoveTextParameters'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/PdfRemoveTextParameters'
+        description: A PdfRemoveTextParameters object specifying the parameters of
+          the action.
+        required: true
+      responses:
+        "200":
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/PdfRemoveTextResponse'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PdfRemoveTextResponse'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/PdfRemoveTextResponse'
+          description: Success
+      summary: Removes text (all text or only invisible one) from a previously uploaded
+        PDF.
+      tags:
+      - PDF
+      x-operation-cost:
+        mode: Standard
+        baseCost: 2
   /api/pdf/ReorderPages:
     post:
       operationId: ReorderPages
@@ -2821,6 +3176,9 @@ paths:
       summary: Reorders pages of a previously uploaded document.
       tags:
       - PDF
+      x-operation-cost:
+        mode: Standard
+        baseCost: 1
   /api/pdf/RepairDocument:
     post:
       operationId: RepairDocument
@@ -2857,6 +3215,9 @@ paths:
       summary: Repairs a previously uploaded PDF document.
       tags:
       - PDF
+      x-operation-cost:
+        mode: Standard
+        baseCost: 2
   /api/pdf/RotatePageStandard:
     post:
       operationId: RotatePageStandard
@@ -2893,6 +3254,9 @@ paths:
       summary: Rotates (standardly) a page range from a previously uploaded document.
       tags:
       - PDF
+      x-operation-cost:
+        mode: Standard
+        baseCost: 1
   /api/pdf/SaveAsJPEG:
     post:
       operationId: SaveAsJPEG
@@ -2926,9 +3290,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/PdfSaveAsJPEGResponse'
           description: Success
-      summary: Saves a previously uploaded document as JPEG.
+      summary: Saves a previously uploaded document as JPEG, and sends the file data
+        in a JSON-serialized object.
       tags:
       - PDF
+      x-operation-cost:
+        mode: PerPage
+        baseCost: 1
   /api/pdf/SaveAsJPEGFile:
     post:
       operationId: SaveAsJPEGFile
@@ -2965,9 +3333,13 @@ paths:
                 format: binary
                 type: string
           description: Success
-      summary: Saves a previously uploaded document as JPEG.
+      summary: Saves a previously uploaded document as JPEG, and streams the file
+        binary data to the response (this is the most efficient download method).
       tags:
       - PDF
+      x-operation-cost:
+        mode: PerPage
+        baseCost: 1
   /api/pdf/SaveAsPNG:
     post:
       operationId: SaveAsPNG
@@ -3001,9 +3373,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/PdfSaveAsPNGResponse'
           description: Success
-      summary: Saves a previously uploaded document as PNG.
+      summary: Saves a previously uploaded document as PNG, and sends the file data
+        in a JSON-serialized object.
       tags:
       - PDF
+      x-operation-cost:
+        mode: PerPage
+        baseCost: 1
   /api/pdf/SaveAsPNGFile:
     post:
       operationId: SaveAsPNGFile
@@ -3040,9 +3416,13 @@ paths:
                 format: binary
                 type: string
           description: Success
-      summary: Saves a previously uploaded document as PNG.
+      summary: Saves a previously uploaded document as PNG, and streams the file binary
+        data to the response (this is the most efficient download method).
       tags:
       - PDF
+      x-operation-cost:
+        mode: PerPage
+        baseCost: 1
   /api/pdf/SaveAsTIFF:
     post:
       operationId: SaveAsTIFF
@@ -3076,9 +3456,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/PdfSaveAsTIFFResponse'
           description: Success
-      summary: Saves a previously uploaded document as TIFF.
+      summary: Saves a previously uploaded document as TIFF, and sends the file data
+        in a JSON-serialized object.
       tags:
       - PDF
+      x-operation-cost:
+        mode: PerPage
+        baseCost: 1
   /api/pdf/SaveAsTIFFFile:
     post:
       operationId: SaveAsTIFFFile
@@ -3115,9 +3499,13 @@ paths:
                 format: binary
                 type: string
           description: Success
-      summary: Saves a previously uploaded document as TIFF.
+      summary: Saves a previously uploaded document as TIFF, and streams the file
+        binary data to the response (this is the most efficient download method).
       tags:
       - PDF
+      x-operation-cost:
+        mode: PerPage
+        baseCost: 1
   /api/pdf/SaveAsTIFFMultipage:
     post:
       operationId: SaveAsTIFFMultipage
@@ -3151,9 +3539,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/PdfSaveAsTIFFMultipageResponse'
           description: Success
-      summary: Saves a previously uploaded document as multipage TIFF.
+      summary: Saves a previously uploaded document as multipage TIFF, and sends the
+        file data in a JSON-serialized object.
       tags:
       - PDF
+      x-operation-cost:
+        mode: PerPage
+        baseCost: 1
   /api/pdf/SaveAsTIFFMultipageFile:
     post:
       operationId: SaveAsTIFFMultipageFile
@@ -3190,9 +3582,14 @@ paths:
                 format: binary
                 type: string
           description: Success
-      summary: Saves a previously uploaded document as multipage TIFF.
+      summary: Saves a previously uploaded document as multipage TIFF, and streams
+        the file binary data to the response (this is the most efficient download
+        method).
       tags:
       - PDF
+      x-operation-cost:
+        mode: PerPage
+        baseCost: 1
   /api/pdf/SaveDocument:
     post:
       operationId: SaveDocument
@@ -3226,9 +3623,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/PdfSaveDocumentResponse'
           description: Success
-      summary: Saves a previously uploaded document as PDF.
+      summary: Saves a previously uploaded document as PDF, and sends the file data
+        in a JSON-serialized object.
       tags:
       - PDF
+      x-operation-cost:
+        mode: Standard
+        baseCost: 1
   /api/pdf/SaveDocumentToFile:
     post:
       operationId: SaveDocumentToFile
@@ -3265,9 +3666,13 @@ paths:
                 format: binary
                 type: string
           description: Success
-      summary: Saves a previously uploaded document as PDF.
+      summary: Saves a previously uploaded document as PDF, and streams the file binary
+        data to the response (this is the most efficient download method).
       tags:
       - PDF
+      x-operation-cost:
+        mode: Standard
+        baseCost: 1
   /api/pdf/ScalePage:
     post:
       operationId: ScalePage
@@ -3303,6 +3708,9 @@ paths:
       summary: Scales a page range from a previously uploaded document.
       tags:
       - PDF
+      x-operation-cost:
+        mode: Standard
+        baseCost: 1
   /api/pdf/SetInfo:
     post:
       operationId: SetInfo
@@ -3339,6 +3747,9 @@ paths:
       summary: Sets information to a previously uploaded document.
       tags:
       - PDF
+      x-operation-cost:
+        mode: Standard
+        baseCost: 1
   /api/pdf/SetInitialView:
     post:
       operationId: SetInitialView
@@ -3376,6 +3787,9 @@ paths:
         document.
       tags:
       - PDF
+      x-operation-cost:
+        mode: Standard
+        baseCost: 1
   /api/pdf/SetPageBox:
     post:
       operationId: SetPageBox
@@ -3412,6 +3826,9 @@ paths:
       summary: Sets pagebox to a page range from previously uploaded document.
       tags:
       - PDF
+      x-operation-cost:
+        mode: Standard
+        baseCost: 1
   /api/pdf/SetPassword:
     post:
       operationId: SetPassword
@@ -3448,6 +3865,9 @@ paths:
       summary: Unprotects a previously uploaded document.
       tags:
       - PDF
+      x-operation-cost:
+        mode: Standard
+        baseCost: 1
   /api/pdf/Split:
     post:
       operationId: Split
@@ -3484,6 +3904,9 @@ paths:
       summary: Splits a previously uploaded document into new ones.
       tags:
       - PDF
+      x-operation-cost:
+        mode: Standard
+        baseCost: 5
   /api/pdf/SwapPages:
     post:
       operationId: SwapPages
@@ -3520,6 +3943,9 @@ paths:
       summary: Swaps two pages from a previously uploaded document.
       tags:
       - PDF
+      x-operation-cost:
+        mode: Standard
+        baseCost: 1
   /api/pdf/Unprotect:
     post:
       operationId: Unprotect
@@ -3556,6 +3982,9 @@ paths:
       summary: Unprotects a previously uploaded document.
       tags:
       - PDF
+      x-operation-cost:
+        mode: Standard
+        baseCost: 2
 components:
   requestBodies:
     inline_object_1:
@@ -3568,6 +3997,11 @@ components:
         multipart/form-data:
           schema:
             $ref: '#/components/schemas/inline_object'
+    inline_object_2:
+      content:
+        multipart/form-data:
+          schema:
+            $ref: '#/components/schemas/inline_object_2'
   schemas:
     PassportPDFStatus:
       description: Specifies a PassportPDF status.
@@ -3656,8 +4090,13 @@ components:
       - CanNotAutoCrop
       - CanNotScalePage
       - CanNotMergePages
+      - CanNotGetMetaData
+      - CanNotSetMetadata
+      - CanNotRemoveText
+      - CanNotDownloadDocument
       type: string
     Error:
+      additionalProperties: false
       description: Contains all the information related to an error which has occured.
       example:
         InternalErrorId: InternalErrorId
@@ -3683,6 +4122,7 @@ components:
           type: string
       type: object
     LongResponse:
+      additionalProperties: false
       description: Represents a long response.
       example:
         Value: 0
@@ -3700,6 +4140,7 @@ components:
           type: integer
       type: object
     IntegerResponse:
+      additionalProperties: false
       description: Represents an integer response.
       example:
         Value: 0
@@ -3725,6 +4166,7 @@ components:
       - BoldItalic
       type: string
     Font:
+      additionalProperties: false
       description: Represents a font.
       example:
         FamilyName: FamilyName
@@ -3737,6 +4179,7 @@ components:
           type: string
       type: object
     StringArrayResponse:
+      additionalProperties: false
       description: Represents a string array response.
       example:
         Value:
@@ -3758,6 +4201,7 @@ components:
           type: array
       type: object
     DocumentCloseParameters:
+      additionalProperties: false
       description: Represents the parameters for a close document action.
       example:
         FileId: FileId
@@ -3769,6 +4213,7 @@ components:
       - FileId
       type: object
     DocumentCloseResponse:
+      additionalProperties: false
       description: Represents the response to a close document action request.
       example:
         RemainingTokens: 0
@@ -3785,27 +4230,17 @@ components:
           type: integer
       type: object
     GetDocumentPreviewParameters:
+      additionalProperties: false
       description: Represents the parameters for a get document preview action.
       example:
         ThumbnailBackgroundColor: rgba(0,0,0,0)
         ThumbnailHeight: 6
-        FileName: FileName
         ThumbnailWidth: 0
         FileId: FileId
-        FileData: FileData
         ThumbnailFitToPageSize: true
       properties:
         FileId:
           description: Specifies the identifier of the file to be previewed.
-          nullable: true
-          type: string
-        FileData:
-          description: Specifies the data of the document to be previewed.
-          format: byte
-          nullable: true
-          type: string
-        FileName:
-          description: Specifies the name of the file to be previewed.
           type: string
         ThumbnailWidth:
           default: 140
@@ -3829,7 +4264,7 @@ components:
             adjusted to don't have any margin.
           type: boolean
       required:
-      - FileName
+      - FileId
       type: object
     DocumentFormat:
       description: Specifies the format of a document.
@@ -3889,6 +4324,7 @@ components:
       - PPTX
       type: string
     DocumentGetPreviewResponse:
+      additionalProperties: false
       description: Represents the response to a get document preview action request.
       example:
         PageCount: 6
@@ -3919,6 +4355,194 @@ components:
           type: string
         DocumentFormat:
           $ref: '#/components/schemas/DocumentFormat'
+      type: object
+    ContentEncoding:
+      description: Indicates the encoding mode of data.
+      enum:
+      - Identity
+      - Gzip
+      type: string
+    LoadDocumentFromByteArrayParameters:
+      additionalProperties: false
+      description: Represents the parameters for an image loading request.
+      example:
+        ThumbnailBackgroundColor: rgba(0,0,0,0)
+        ThumbnailHeight: 6
+        GetPreview: false
+        Content: Content
+        FileName: FileName
+        ThumbnailWidth: 0
+        ThumbnailFitToPageSize: true
+      properties:
+        Content:
+          description: Specifies the data of the document.
+          format: byte
+          type: string
+        FileName:
+          description: Specifies the name of the document.
+          nullable: true
+          type: string
+        ContentEncoding:
+          $ref: '#/components/schemas/ContentEncoding'
+        GetPreview:
+          default: false
+          description: Specifies whether the response must contain a thumbnail of
+            the first page of the document.
+          type: boolean
+        ThumbnailWidth:
+          default: 140
+          description: Specifies, in pixels, the width of the thumbnail to be retrieved.
+            Only applicable if GetPreview has been set to true.
+          format: int32
+          type: integer
+        ThumbnailHeight:
+          default: 220
+          description: Specifies, in pixels, the height of the thumbnail to be retrieved.  Only
+            applicable if GetPreview has been set to true.
+          format: int32
+          type: integer
+        ThumbnailBackgroundColor:
+          default: rgba(0,0,0,0)
+          description: "Specifies the background color of the thumbnail, using the\
+            \ color name (ie: \"red\") or its RGBa code (ie: \"rgba(255,0,0,1)\").\r\
+            \n Only applicable if GetPreview has been set to true."
+          nullable: true
+          type: string
+        ThumbnailFitToPageSize:
+          default: true
+          description: "Specifies if the size of the produced thumbnail is automatically\
+            \ adjusted to don't have any margin.\r\nOnly applicable if GetPreview\
+            \ has been set to true."
+          type: boolean
+      required:
+      - Content
+      type: object
+    DocumentLoadResponse:
+      additionalProperties: false
+      description: Represents the response to a document loading action request.
+      example:
+        PageCount: 6
+        ThumbnailData: ThumbnailData
+        RemainingTokens: 0
+        Error:
+          InternalErrorId: InternalErrorId
+          ExtResultStatus: ExtResultStatus
+          ExtResultMessage: ExtResultMessage
+        FileId: FileId
+      properties:
+        Error:
+          $ref: '#/components/schemas/Error'
+        RemainingTokens:
+          description: Specifies the number of remaining tokens.
+          format: int64
+          type: integer
+        FileId:
+          description: Specifies the file identifier of the loaded document.
+          nullable: true
+          readOnly: true
+          type: string
+        DocumentFormat:
+          $ref: '#/components/schemas/DocumentFormat'
+        PageCount:
+          description: Specifies the number of pages into the loaded document.
+          format: int32
+          readOnly: true
+          type: integer
+        ThumbnailData:
+          description: Specifies the data of a thumbnail from the first page of the
+            document, in PNG format. Only applicable if the GetPreview field of the
+            request has been set to true.
+          format: byte
+          nullable: true
+          readOnly: true
+          type: string
+      type: object
+    LoadDocumentFromURIParameters:
+      additionalProperties: false
+      description: Represents the parameters for an image loading request.
+      properties:
+        URI:
+          description: Specifies the uri of the document.
+          type: string
+        FileName:
+          description: Specifies the name of the document.
+          nullable: true
+          type: string
+        ContentEncoding:
+          $ref: '#/components/schemas/ContentEncoding'
+        GetPreview:
+          default: false
+          description: Specifies whether the response must contain a thumbnail of
+            the first page of the document.
+          type: boolean
+        ThumbnailWidth:
+          default: 140
+          description: Specifies, in pixels, the width of the thumbnail to be retrieved.
+            Only applicable if GetPreview has been set to true.
+          format: int32
+          type: integer
+        ThumbnailHeight:
+          default: 220
+          description: Specifies, in pixels, the height of the thumbnail to be retrieved.  Only
+            applicable if GetPreview has been set to true.
+          format: int32
+          type: integer
+        ThumbnailBackgroundColor:
+          default: rgba(0,0,0,0)
+          description: "Specifies the background color of the thumbnail, using the\
+            \ color name (ie: \"red\") or its RGBa code (ie: \"rgba(255,0,0,1)\").\r\
+            \n Only applicable if GetPreview has been set to true."
+          nullable: true
+          type: string
+        ThumbnailFitToPageSize:
+          default: true
+          description: "Specifies if the size of the produced thumbnail is automatically\
+            \ adjusted to don't have any margin.\r\nOnly applicable if GetPreview\
+            \ has been set to true."
+          type: boolean
+      required:
+      - URI
+      type: object
+    LoadDocumentParameters:
+      additionalProperties: false
+      description: Represents the parameters for importing a document.
+      properties:
+        FileName:
+          description: Specifies the name of the document.
+          nullable: true
+          type: string
+        ContentEncoding:
+          $ref: '#/components/schemas/ContentEncoding'
+        GetPreview:
+          default: false
+          description: Specifies whether the response must contain a thumbnail of
+            the first page of the document.
+          type: boolean
+        ThumbnailWidth:
+          default: 140
+          description: Specifies, in pixels, the width of the thumbnail to be retrieved.
+            Only applicable if GetPreview has been set to true.
+          format: int32
+          type: integer
+        ThumbnailHeight:
+          default: 220
+          description: Specifies, in pixels, the height of the thumbnail to be retrieved.  Only
+            applicable if GetPreview has been set to true.
+          format: int32
+          type: integer
+        ThumbnailBackgroundColor:
+          default: rgba(0,0,0,0)
+          description: "Specifies the background color of the thumbnail, using the\
+            \ color name (ie: \"red\") or its RGBa code (ie: \"rgba(255,0,0,1)\").\r\
+            \n Only applicable if GetPreview has been set to true."
+          nullable: true
+          type: string
+        ThumbnailFitToPageSize:
+          default: true
+          description: "Specifies if the size of the produced thumbnail is automatically\
+            \ adjusted to don't have any margin.\r\nOnly applicable if GetPreview\
+            \ has been set to true."
+          type: boolean
       type: object
     DocumentAlignment:
       enum:
@@ -4030,6 +4654,7 @@ components:
       - VeryHigh
       type: string
     DocuViewareCertificate:
+      additionalProperties: false
       example:
         TimestampServerUserName: TimestampServerUserName
         TimestampServerURI: TimestampServerURI
@@ -4059,6 +4684,7 @@ components:
           type: string
       type: object
     DocuViewareControlState:
+      additionalProperties: false
       description: Specifies configuration and appearance state of a DocuVieware control.
       example:
         AllowPrint: true
@@ -4774,6 +5400,7 @@ components:
           type: string
       type: object
     DocuViewareGetControlParameters:
+      additionalProperties: false
       description: Represents the parameters for a GetControl action.
       example:
         ControlState:
@@ -4912,6 +5539,7 @@ components:
       - SessionID
       type: object
     DocuViewareGetControlResponse:
+      additionalProperties: false
       description: Represents the response to a get control action request.
       example:
         Element: Element
@@ -4934,6 +5562,7 @@ components:
           type: string
       type: object
     StringResponse:
+      additionalProperties: false
       description: Represents a string response.
       example:
         Value: Value
@@ -4951,6 +5580,7 @@ components:
           type: string
       type: object
     DocuViewareSaveParameters:
+      additionalProperties: false
       description: Represents the parameters for a Save action.
       example:
         Format: Format
@@ -4986,6 +5616,7 @@ components:
       - SessionId
       type: object
     DocuViewareSaveResponse:
+      additionalProperties: false
       description: Represents the response to a save as JPEG action request.
       example:
         ContentType: ContentType
@@ -5015,6 +5646,7 @@ components:
           type: string
       type: object
     ImageAdjustParameters:
+      additionalProperties: false
       description: Represents the parameters for an image adjustment action.
       example:
         AutoContrastEnhancement: false
@@ -5093,6 +5725,7 @@ components:
       - PageRange
       type: object
     ImageAdjustResponse:
+      additionalProperties: false
       description: Represents the response to an image adjustment action request.
       example:
         RemainingTokens: 0
@@ -5109,6 +5742,7 @@ components:
           type: integer
       type: object
     ImageAutoCropParameters:
+      additionalProperties: false
       description: Represents the parameters for an image auto cropping action.
       example:
         Confidence: 0.8008282
@@ -5132,6 +5766,7 @@ components:
       - PageRange
       type: object
     ImageAutoCropResponse:
+      additionalProperties: false
       description: Represents the response to an image auto cropping action request.
       example:
         RemainingTokens: 0
@@ -5148,6 +5783,7 @@ components:
           type: integer
       type: object
     ImageCleanupDocumentParameters:
+      additionalProperties: false
       description: Represents the parameters for a cleanup document action.
       example:
         DespeckleStrength: 0
@@ -5207,6 +5843,7 @@ components:
       - PageRange
       type: object
     ImageCleanupDocumentResponse:
+      additionalProperties: false
       description: Represents the response to a cleanup document action request.
       example:
         RemainingTokens: 0
@@ -5223,6 +5860,7 @@ components:
           type: integer
       type: object
     ImageRegion:
+      additionalProperties: false
       description: Represents a region of a given page of an image.
       example:
         Left: 1
@@ -5253,6 +5891,7 @@ components:
           type: integer
       type: object
     ImageCloneRegionsParameters:
+      additionalProperties: false
       description: Represents the parameters for a clone image region action.
       example:
         ImageRegions:
@@ -5281,6 +5920,7 @@ components:
       - ImageRegions
       type: object
     ClonedImageRegion:
+      additionalProperties: false
       description: Represents a cloned image region.
       example:
         ImageRegion:
@@ -5299,6 +5939,7 @@ components:
           type: string
       type: object
     ImageCloneRegionsResponse:
+      additionalProperties: false
       description: Represents the response to a close image action request.
       example:
         ClonedImages:
@@ -5337,6 +5978,7 @@ components:
           type: array
       type: object
     ImageCloseParameters:
+      additionalProperties: false
       description: Represents the parameters for a close image action.
       example:
         FileId: FileId
@@ -5348,6 +5990,7 @@ components:
       - FileId
       type: object
     ImageCloseResponse:
+      additionalProperties: false
       description: Represents the response to a close image action request.
       example:
         RemainingTokens: 0
@@ -5388,6 +6031,7 @@ components:
       - Depth64BppPARGB
       type: string
     ImageConvertColorDepthParameters:
+      additionalProperties: false
       description: Represents the parameters for an image color depth change action.
       example:
         Depth1BppSauvolaFactor: 1.4658129
@@ -5429,6 +6073,7 @@ components:
       - PageRange
       type: object
     ImageConvertColorDepthResponse:
+      additionalProperties: false
       description: Represents the response to an image convert color depth action
         request.
       example:
@@ -5452,6 +6097,7 @@ components:
       - Percent
       type: string
     ImageCropParameters:
+      additionalProperties: false
       description: Represents the parameters for an image crop action.
       example:
         CropBoxLeft: 0
@@ -5495,6 +6141,7 @@ components:
       - PageRange
       type: object
     ImageCropResponse:
+      additionalProperties: false
       description: Represents the response to an image crop action request.
       example:
         RemainingTokens: 0
@@ -5511,6 +6158,7 @@ components:
           type: integer
       type: object
     ImageDeletePageParameters:
+      additionalProperties: false
       description: Represents the parameters for a delete page action.
       example:
         FileId: FileId
@@ -5528,6 +6176,7 @@ components:
       - PageRange
       type: object
     ImageDeletePageResponse:
+      additionalProperties: false
       description: Represents the response to a delete page action request.
       example:
         RemainingTokens: 0
@@ -5544,6 +6193,7 @@ components:
           type: integer
       type: object
     ImageDetectBlankPagesParameters:
+      additionalProperties: false
       description: Represents the parameters for a detect blank pages action.
       example:
         FileId: FileId
@@ -5566,6 +6216,7 @@ components:
       - PageRange
       type: object
     ImageDetectBlankPagesResponse:
+      additionalProperties: false
       description: Represents the response to a detect blank pages action request.
       example:
         DetectedBlankPages:
@@ -5594,6 +6245,7 @@ components:
           type: array
       type: object
     ImageDetectColorParameters:
+      additionalProperties: false
       description: Represents the parameters for an image color detection action.
       example:
         AutoConvert: false
@@ -5633,6 +6285,7 @@ components:
       - White
       type: string
     ColorDetectionResult:
+      additionalProperties: false
       description: Represents the result to a color detection operation performed
         on a given page of an image.
       example:
@@ -5646,6 +6299,7 @@ components:
           $ref: '#/components/schemas/OutputIntent'
       type: object
     ImageDetectColorResponse:
+      additionalProperties: false
       description: Represents the response to an image color detection action request.
       example:
         ColorDetectionResults:
@@ -5673,6 +6327,7 @@ components:
           type: array
       type: object
     ImageDetectPageOrientationParameters:
+      additionalProperties: false
       description: Represents the parameters for a detect page orientation action.
       example:
         Language: eng
@@ -5702,6 +6357,7 @@ components:
       - PageRange
       type: object
     PageOrientationInfo:
+      additionalProperties: false
       description: Represents information about the orientation of a given page.
       example:
         RotationAngle: 1
@@ -5718,6 +6374,7 @@ components:
           type: integer
       type: object
     ImageDetectPageOrientationResponse:
+      additionalProperties: false
       description: Represents the response to a detect page orientation action request.
       example:
         RemainingTokens: 0
@@ -5778,6 +6435,7 @@ components:
       - unsharpmask
       type: string
     ImageFilterParameters:
+      additionalProperties: false
       description: Represents the parameters for an image filtering action.
       example:
         SoftenValue: 1
@@ -5935,6 +6593,7 @@ components:
       - PageRange
       type: object
     ImageFilterResponse:
+      additionalProperties: false
       description: Represents the response to an image filtering action request.
       example:
         RemainingTokens: 0
@@ -5951,6 +6610,7 @@ components:
           type: integer
       type: object
     ImageGetPageThumbnailParameters:
+      additionalProperties: false
       description: Represents the parameters for a get page thumbnail action.
       example:
         ThumbnailHeight: 6
@@ -5980,6 +6640,7 @@ components:
       - PageRange
       type: object
     PageImage:
+      additionalProperties: false
       description: Holds the data of an image from a given page of a document.
       example:
         PageNumber: 6
@@ -6001,6 +6662,7 @@ components:
           type: string
       type: object
     ImageGetPageThumbnailResponse:
+      additionalProperties: false
       description: Represents the response to a get page thumbnail action request.
       example:
         PageThumbnails:
@@ -6030,17 +6692,17 @@ components:
           readOnly: true
           type: array
       type: object
-    ContentEncoding:
-      description: Indicates the encoding mode of data.
-      enum:
-      - Identity
-      - Gzip
-      type: string
     LoadImageFromByteArrayParameters:
+      additionalProperties: false
       description: Represents the parameters for an image loading request.
       example:
+        ThumbnailBackgroundColor: rgba(0,0,0,0)
+        ThumbnailHeight: 6
+        GetPreview: false
         Content: Content
         FileName: FileName
+        ThumbnailWidth: 0
+        ThumbnailFitToPageSize: true
       properties:
         Content:
           description: Specifies the data of the image.
@@ -6052,10 +6714,41 @@ components:
           type: string
         ContentEncoding:
           $ref: '#/components/schemas/ContentEncoding'
+        GetPreview:
+          default: false
+          description: Specifies whether the response must contain a thumbnail of
+            the first page of the document.
+          type: boolean
+        ThumbnailWidth:
+          default: 140
+          description: Specifies, in pixels, the width of the thumbnail to be retrieved.
+            Only applicable if GetPreview has been set to true.
+          format: int32
+          type: integer
+        ThumbnailHeight:
+          default: 220
+          description: Specifies, in pixels, the height of the thumbnail to be retrieved.  Only
+            applicable if GetPreview has been set to true.
+          format: int32
+          type: integer
+        ThumbnailBackgroundColor:
+          default: rgba(0,0,0,0)
+          description: "Specifies the background color of the thumbnail, using the\
+            \ color name (ie: \"red\") or its RGBa code (ie: \"rgba(255,0,0,1)\").\r\
+            \n Only applicable if GetPreview has been set to true."
+          nullable: true
+          type: string
+        ThumbnailFitToPageSize:
+          default: true
+          description: "Specifies if the size of the produced thumbnail is automatically\
+            \ adjusted to don't have any margin.\r\nOnly applicable if GetPreview\
+            \ has been set to true."
+          type: boolean
       required:
       - Content
       type: object
     ImageLoadResponse:
+      additionalProperties: false
       description: Represents the response to an image loading action request.
       example:
         RemainingTokens: 0
@@ -6078,6 +6771,7 @@ components:
           type: string
       type: object
     LoadImageParameters:
+      additionalProperties: false
       description: Represents the parameters for importing an image.
       properties:
         FileName:
@@ -6086,6 +6780,36 @@ components:
           type: string
         ContentEncoding:
           $ref: '#/components/schemas/ContentEncoding'
+        GetPreview:
+          default: false
+          description: Specifies whether the response must contain a thumbnail of
+            the first page of the document.
+          type: boolean
+        ThumbnailWidth:
+          default: 140
+          description: Specifies, in pixels, the width of the thumbnail to be retrieved.
+            Only applicable if GetPreview has been set to true.
+          format: int32
+          type: integer
+        ThumbnailHeight:
+          default: 220
+          description: Specifies, in pixels, the height of the thumbnail to be retrieved.  Only
+            applicable if GetPreview has been set to true.
+          format: int32
+          type: integer
+        ThumbnailBackgroundColor:
+          default: rgba(0,0,0,0)
+          description: "Specifies the background color of the thumbnail, using the\
+            \ color name (ie: \"red\") or its RGBa code (ie: \"rgba(255,0,0,1)\").\r\
+            \n Only applicable if GetPreview has been set to true."
+          nullable: true
+          type: string
+        ThumbnailFitToPageSize:
+          default: true
+          description: "Specifies if the size of the produced thumbnail is automatically\
+            \ adjusted to don't have any margin.\r\nOnly applicable if GetPreview\
+            \ has been set to true."
+          type: boolean
       type: object
     MicrFont:
       description: Specifies the two major MICR fonts in use.
@@ -6101,6 +6825,7 @@ components:
       - LineFinding
       type: string
     ImageMICRParameters:
+      additionalProperties: false
       description: Represents the parameters for a MICR action.
       properties:
         FileId:
@@ -6153,6 +6878,7 @@ components:
       - PageRange
       type: object
     MICRSymbolInfo:
+      additionalProperties: false
       description: Holds detailed information about a magnetic ink symbol detected
         by a MICR process.
       example:
@@ -6209,6 +6935,7 @@ components:
           type: number
       type: object
     MICRResult:
+      additionalProperties: false
       description: Represents the result of a MICR operation run on a document given
         page.
       example:
@@ -6252,6 +6979,7 @@ components:
           type: array
       type: object
     ImageMICRResponse:
+      additionalProperties: false
       description: Represents the response to a MICR action request.
       example:
         Results:
@@ -6324,6 +7052,7 @@ components:
       - FavorAccuracy
       type: string
     ImageReadBarcodesParameters:
+      additionalProperties: false
       description: Represents the parameters for a read barcode action.
       example:
         ScanBarcodeDataMatrix: true
@@ -6432,6 +7161,7 @@ components:
       - ADD2
       type: string
     BarcodeInfo:
+      additionalProperties: false
       description: Represents information about a read barcode.
       example:
         Data: Data
@@ -6565,6 +7295,7 @@ components:
           type: number
       type: object
     ReadBarcodesResponse:
+      additionalProperties: false
       description: Represents the response to a read barcode page action request.
       example:
         RemainingTokens: 0
@@ -6644,6 +7375,7 @@ components:
       - Percent
       type: string
     ImageResizeParameters:
+      additionalProperties: false
       description: Represents the parameters for an image resize action.
       example:
         ResizeVertical: 6.0274563
@@ -6677,6 +7409,7 @@ components:
       - ResizeVertical
       type: object
     ImageResizeResponse:
+      additionalProperties: false
       description: Represents the response to an image resize action request.
       example:
         RemainingTokens: 0
@@ -6693,6 +7426,7 @@ components:
           type: integer
       type: object
     ImageRotateParameters:
+      additionalProperties: false
       description: Represents the parameters for an image rotate action.
       example:
         FlipHorizontally: false
@@ -6709,7 +7443,6 @@ components:
             rotate.
           type: string
         RotationAngle:
-          default: 0
           description: Specifies the rotation angle, clockwise in degrees, which can
             be either positive and negative and any multiple of 90.
           format: float
@@ -6725,8 +7458,10 @@ components:
       required:
       - FileId
       - PageRange
+      - RotationAngle
       type: object
     ImageRotateResponse:
+      additionalProperties: false
       description: Represents the response to an image rotate action request.
       example:
         RemainingTokens: 0
@@ -6743,6 +7478,7 @@ components:
           type: integer
       type: object
     ImageSaveAsJPEGParameters:
+      additionalProperties: false
       description: Represents the parameters for a save as JPEG action.
       properties:
         FileId:
@@ -6768,6 +7504,7 @@ components:
       - FileId
       type: object
     ImageSaveAsJPEGResponse:
+      additionalProperties: false
       description: Represents the response to a save as JPEG action request.
       example:
         RemainingTokens: 0
@@ -6832,6 +7569,7 @@ components:
       - JPEG2000
       type: string
     ImageSaveAsPDFParameters:
+      additionalProperties: false
       description: Represents the parameters for a save as PDF action.
       properties:
         FileId:
@@ -6873,6 +7611,7 @@ components:
       - FileId
       type: object
     ImageSaveAsPDFResponse:
+      additionalProperties: false
       description: Represents the response to a save as PDF action request.
       example:
         FileName: FileName
@@ -6902,6 +7641,7 @@ components:
           type: string
       type: object
     ImageSaveAsPDFMRCParameters:
+      additionalProperties: false
       description: Represents the parameters for a save as PDF MRC action.
       properties:
         FileId:
@@ -6953,6 +7693,7 @@ components:
       - FileId
       type: object
     ImageSaveAsPDFMRCResponse:
+      additionalProperties: false
       description: Represents the response to a save as PDF MRC action request.
       example:
         FileName: FileName
@@ -6982,6 +7723,7 @@ components:
           type: string
       type: object
     ImageSaveAsPNGParameters:
+      additionalProperties: false
       description: Represents the parameters for a save as PNG action.
       properties:
         FileId:
@@ -7008,6 +7750,7 @@ components:
       - FileId
       type: object
     ImageSaveAsPNGResponse:
+      additionalProperties: false
       description: Represents the response to a save as PNG action request.
       example:
         RemainingTokens: 0
@@ -7049,6 +7792,7 @@ components:
       - Auto
       type: string
     ImageSaveAsTIFFParameters:
+      additionalProperties: false
       description: Represents the parameters for a save as TIFF action.
       properties:
         FileId:
@@ -7077,6 +7821,7 @@ components:
       - FileId
       type: object
     ImageSaveAsTIFFResponse:
+      additionalProperties: false
       description: Represents the response to a save as TIFF action request.
       example:
         RemainingTokens: 0
@@ -7107,6 +7852,7 @@ components:
           type: array
       type: object
     ImageSaveAsTIFFMultipageParameters:
+      additionalProperties: false
       description: Represents the parameters for a save as TIFF multipage action.
       properties:
         FileId:
@@ -7130,6 +7876,7 @@ components:
       - FileId
       type: object
     ImageSaveAsTIFFMultipageResponse:
+      additionalProperties: false
       description: Represents the response to a save as TIFF multipage action request.
       example:
         ImageData: ImageData
@@ -7159,6 +7906,7 @@ components:
           type: string
       type: object
     ImageSwapPagesParameters:
+      additionalProperties: false
       description: Represents the parameters for a swap pages action.
       example:
         Page1: 0
@@ -7182,6 +7930,7 @@ components:
       - Page2
       type: object
     ImageSwapPagesResponse:
+      additionalProperties: false
       description: Represents the response to a swap pages action request.
       example:
         RemainingTokens: 0
@@ -7198,6 +7947,7 @@ components:
           type: integer
       type: object
     PassportPDFPassport:
+      additionalProperties: false
       example:
         IsActive: true
         PlanId: 0
@@ -7210,6 +7960,7 @@ components:
         SubscriptionDate: 2000-01-23T04:56:07.000+00:00
         ExpirationDate: 2000-01-23T04:56:07.000+00:00
         TokensPercentUsageAlertSent: true
+        IsManaged: true
         CurrentTokensUsed: 6
         NextMonthlyTerm: 2000-01-23T04:56:07.000+00:00
         IsYearlyPaid: true
@@ -7246,6 +7997,8 @@ components:
           format: int32
           type: integer
         TokensPercentUsageAlertSent:
+          type: boolean
+        IsManaged:
           type: boolean
         NextMonthlyTerm:
           format: date-time
@@ -7295,6 +8048,7 @@ components:
       - AutoFit
       type: string
     DrawableContentLayoutParameters:
+      additionalProperties: false
       description: Represents information about the layout of a content, on the page
         it is drawn onto.
       example:
@@ -7355,6 +8109,7 @@ components:
       - UpLeftArrow
       type: string
     StickyNoteAnnotationParameters:
+      additionalProperties: false
       description: Represents information about the Sticky Note Annotation.
       example:
         AnnotationLayout:
@@ -7404,6 +8159,7 @@ components:
       - Web
       type: string
     LinkAnnotationParameters:
+      additionalProperties: false
       description: Represents information about the Link Annotation.
       example:
         LinkUri: LinkUri
@@ -7454,6 +8210,7 @@ components:
       - ZapfDingbats
       type: string
     PdfTextParameters:
+      additionalProperties: false
       description: Represents the basic parameters for text content.
       example:
         FontSize: 2
@@ -7486,6 +8243,7 @@ components:
           type: integer
       type: object
     FreeTextAnnotationParameters:
+      additionalProperties: false
       description: Represents information about the FreeText Annotation.
       example:
         TextParameters:
@@ -7543,6 +8301,7 @@ components:
       - Slash
       type: string
     LineAnnotationParameters:
+      additionalProperties: false
       description: Represents information about the Line Annotation.
       example:
         LineStartX: 7.0614014
@@ -7604,6 +8363,7 @@ components:
           type: string
       type: object
     SquareAndCircleAnnotationParameters:
+      additionalProperties: false
       description: Represents information about the Square / Circle Annotation.
       example:
         AnnotationLayout:
@@ -7668,6 +8428,7 @@ components:
       - DReviewed
       type: string
     RubberStampAnnotationParameters:
+      additionalProperties: false
       description: Represents information about the Rubber Stamp Annotation.
       example:
         AnnotationLayout:
@@ -7702,6 +8463,7 @@ components:
       - AnnotationLayout
       type: object
     PdfAnnotateParameters:
+      additionalProperties: false
       description: Represents the parameters for an annotate action.
       example:
         FreeTextAnnotationParameters:
@@ -7802,6 +8564,7 @@ components:
       - PageRange
       type: object
     PdfAnnotateResponse:
+      additionalProperties: false
       description: Represents the response to an annotate action request.
       example:
         RemainingTokens: 0
@@ -7818,6 +8581,7 @@ components:
           type: integer
       type: object
     PdfAutoDeskewParameters:
+      additionalProperties: false
       description: Represents the parameters for an auto deskew action.
       example:
         Optimistic: false
@@ -7848,6 +8612,7 @@ components:
       - PageRange
       type: object
     PdfAutoDeskewResponse:
+      additionalProperties: false
       description: Represents the response to an auto deskew action request.
       example:
         RemainingTokens: 0
@@ -7864,6 +8629,7 @@ components:
           type: integer
       type: object
     PdfClearPageParameters:
+      additionalProperties: false
       description: Represents the parameters for a clear page action.
       example:
         FileId: FileId
@@ -7880,6 +8646,7 @@ components:
       - PageRange
       type: object
     PdfClearPageResponse:
+      additionalProperties: false
       description: Represents the response to a clear page action request.
       example:
         RemainingTokens: 0
@@ -7896,6 +8663,7 @@ components:
           type: integer
       type: object
     PdfClonePageParameters:
+      additionalProperties: false
       description: Represents the parameters for a ClonePage action.
       example:
         SourceFileId: SourceFileId
@@ -7925,6 +8693,7 @@ components:
       - SourceFileId
       type: object
     PdfClonePageResponse:
+      additionalProperties: false
       description: Represents the response to a ClonePage action request.
       example:
         RemainingTokens: 0
@@ -7941,6 +8710,7 @@ components:
           type: integer
       type: object
     PdfCloseDocumentParameters:
+      additionalProperties: false
       description: Represents the parameters for a close document action.
       example:
         FileId: FileId
@@ -7952,6 +8722,7 @@ components:
       - FileId
       type: object
     PdfCloseDocumentResponse:
+      additionalProperties: false
       description: Represents the response to a close document action request.
       example:
         RemainingTokens: 0
@@ -7980,6 +8751,7 @@ components:
       - PDFA3u
       type: string
     PdfConvertToPDFAParameters:
+      additionalProperties: false
       description: Represents the parameters for a convert to PDF/A action.
       properties:
         FileId:
@@ -8001,6 +8773,7 @@ components:
       - FileId
       type: object
     PdfConvertToPDFAResponse:
+      additionalProperties: false
       description: Represents the response to a convert to PDF/A action request.
       example:
         RemainingTokens: 0
@@ -8017,6 +8790,7 @@ components:
           type: integer
       type: object
     PdfDeletePageParameters:
+      additionalProperties: false
       description: Represents the parameters for a delete page action.
       example:
         FileId: FileId
@@ -8034,6 +8808,7 @@ components:
       - PageRange
       type: object
     PdfDeletePageResponse:
+      additionalProperties: false
       description: Represents the response to a delete page action request.
       example:
         RemainingTokens: 0
@@ -8050,6 +8825,7 @@ components:
           type: integer
       type: object
     PdfDetectPageOrientationParameters:
+      additionalProperties: false
       description: Represents the parameters for a detect page orientation action.
       example:
         Language: eng
@@ -8079,6 +8855,7 @@ components:
       - PageRange
       type: object
     PdfDetectPageOrientationResponse:
+      additionalProperties: false
       description: Represents the response to a detect page orientation action request.
       example:
         RemainingTokens: 0
@@ -8138,6 +8915,7 @@ components:
       - Far
       type: string
     PdfAlignedTextParameters:
+      additionalProperties: false
       description: Represents the parameters for aligned text content.
       example:
         FontSize: 6
@@ -8174,6 +8952,7 @@ components:
           type: integer
       type: object
     PdfDigiSignParameters:
+      additionalProperties: false
       description: Represents the parameters for a digital signature action.
       example:
         ShowValidationMark: false
@@ -8292,6 +9071,7 @@ components:
       - FileId
       type: object
     PdfDigiSignResponse:
+      additionalProperties: false
       description: Represents the response to a digital signature action request.
       example:
         RemainingTokens: 0
@@ -8308,6 +9088,7 @@ components:
           type: integer
       type: object
     PdfDrawImageParameters:
+      additionalProperties: false
       description: Represents the parameters for a draw image action.
       example:
         ImageFileId: ImageFileId
@@ -8356,6 +9137,7 @@ components:
       - PageRange
       type: object
     PdfDrawImageResponse:
+      additionalProperties: false
       description: Represents the response to a draw image action request.
       example:
         RemainingTokens: 0
@@ -8372,6 +9154,7 @@ components:
           type: integer
       type: object
     PdfExtractPageParameters:
+      additionalProperties: false
       description: Represents the parameters for an extract page action.
       example:
         ExtractAsSeparate: false
@@ -8401,6 +9184,7 @@ components:
       - PageRange
       type: object
     PdfExtractPageResponse:
+      additionalProperties: false
       description: Represents the response to an extract page action request.
       example:
         RemainingTokens: 0
@@ -8447,6 +9231,7 @@ components:
       - WholePageCSV
       type: string
     PdfExtractTextParameters:
+      additionalProperties: false
       description: Represents the parameters for an extract text action.
       example:
         TextExtractionAreaWidth: 1.4658129
@@ -8499,6 +9284,7 @@ components:
       - PageRange
       type: object
     PageText:
+      additionalProperties: false
       description: Holds the extracted text from a given page of a document.
       example:
         PageNumber: 6
@@ -8514,6 +9300,7 @@ components:
           type: string
       type: object
     PdfExtractTextResponse:
+      additionalProperties: false
       description: Represents the response to an extract text action request.
       example:
         RemainingTokens: 0
@@ -8542,12 +9329,14 @@ components:
           type: array
       type: object
     PdfFlattenParameters:
+      additionalProperties: false
       description: Represents the parameters for a flatten action.
       example:
         FlattenFormFields: false
         FileId: FileId
         FlattenAnnotations: false
         FlattenLayers: false
+        PageRange: '*'
       properties:
         FileId:
           description: The identifier of the previously uploaded file to be processed.
@@ -8564,10 +9353,17 @@ components:
           default: false
           description: Specifies whether the layers shall be flattened.
           type: boolean
+        PageRange:
+          default: '*'
+          description: Specifies the range of page whose form-fields and annotations
+            shall be flattened, if any.
+          nullable: true
+          type: string
       required:
       - FileId
       type: object
     PdfFlattenResponse:
+      additionalProperties: false
       description: Represents the response to a flatten action request.
       example:
         RemainingTokens: 0
@@ -8584,6 +9380,7 @@ components:
           type: integer
       type: object
     PdfGetInfoParameters:
+      additionalProperties: false
       description: Represents the parameters for a get info action.
       example:
         FileId: FileId
@@ -8604,6 +9401,7 @@ components:
       - PdfEncryption256BitAES
       type: string
     PdfGetInfoResponse:
+      additionalProperties: false
       description: Represents the response to a get info action request.
       example:
         CanPrint: true
@@ -8725,6 +9523,7 @@ components:
           type: boolean
       type: object
     PdfGetPageThumbnailParameters:
+      additionalProperties: false
       description: Represents the parameters for a get page thumbnail action.
       example:
         ThumbnailHeight: 6
@@ -8767,6 +9566,7 @@ components:
       - PageRange
       type: object
     PdfGetPageThumbnailResponse:
+      additionalProperties: false
       description: Represents the response to a get page thumbnail action request.
       example:
         PageThumbnails:
@@ -8797,6 +9597,7 @@ components:
           type: array
       type: object
     PdfInsertImageParameters:
+      additionalProperties: false
       description: Represents the parameters for an insert image action.
       example:
         ImageFileId: ImageFileId
@@ -8837,6 +9638,7 @@ components:
       - PageRange
       type: object
     PdfInsertImageResponse:
+      additionalProperties: false
       description: Represents the response to an insert image action request.
       example:
         RemainingTokens: 0
@@ -8853,6 +9655,7 @@ components:
           type: integer
       type: object
     PdfInsertNewPageParameters:
+      additionalProperties: false
       description: Represents the parameters for an insert new page action.
       example:
         PageCount: 6
@@ -8889,6 +9692,7 @@ components:
       - PageNumber
       type: object
     PdfInsertNewPageResponse:
+      additionalProperties: false
       description: Represents the response to an insert new page action request.
       example:
         RemainingTokens: 0
@@ -8913,6 +9717,7 @@ components:
       - CustomFormatting
       type: string
     PdfInsertPageNumberParameters:
+      additionalProperties: false
       description: Represents the parameters for an insert page number action.
       example:
         TextParameters:
@@ -8947,6 +9752,7 @@ components:
       - PageRange
       type: object
     PdfInsertPageNumberResponse:
+      additionalProperties: false
       description: Represents the response to an insert page number action request.
       example:
         RemainingTokens: 0
@@ -8963,6 +9769,7 @@ components:
           type: integer
       type: object
     PdfInsertTextParameters:
+      additionalProperties: false
       description: Represents the parameters for an insert text action.
       example:
         TextParameters:
@@ -8996,6 +9803,7 @@ components:
       - TextParameters
       type: object
     PdfInsertTextResponse:
+      additionalProperties: false
       description: Represents the response to an insert text action request.
       example:
         RemainingTokens: 0
@@ -9012,6 +9820,7 @@ components:
           type: integer
       type: object
     PdfLinearizeParameters:
+      additionalProperties: false
       description: Represents the parameters for a linearize action.
       example:
         PackDocument: false
@@ -9029,6 +9838,7 @@ components:
       - FileId
       type: object
     PdfLinearizeResponse:
+      additionalProperties: false
       description: Represents the response to a linearize action request.
       example:
         RemainingTokens: 0
@@ -9045,6 +9855,7 @@ components:
           type: integer
       type: object
     PdfLoadDocumentFromByteArrayParameters:
+      additionalProperties: false
       description: Represents the parameters for a load document action request.
       example:
         FileName: FileName
@@ -9182,6 +9993,7 @@ components:
       - Content
       type: object
     PdfLoadDocumentResponse:
+      additionalProperties: false
       description: Represents the response to a load document action request.
       example:
         PageCount: 6
@@ -9228,6 +10040,7 @@ components:
           type: string
       type: object
     PdfLoadDocumentParameters:
+      additionalProperties: false
       description: Represents the parameters for importing a document as PDF.
       properties:
         FileName:
@@ -9339,6 +10152,7 @@ components:
           type: boolean
       type: object
     PdfMergeParameters:
+      additionalProperties: false
       description: Represents the parameters for a merge action.
       example:
         FilesId:
@@ -9360,6 +10174,7 @@ components:
       - FilesId
       type: object
     PdfMergeResponse:
+      additionalProperties: false
       description: Represents the response to a merge action request.
       example:
         RemainingTokens: 0
@@ -9382,6 +10197,7 @@ components:
           type: string
       type: object
     PdfMergePagesParameters:
+      additionalProperties: false
       description: Represents the parameters for a merge pages action request.
       example:
         FileId: FileId
@@ -9403,6 +10219,7 @@ components:
       - PageRange
       type: object
     PdfMergePagesResponse:
+      additionalProperties: false
       description: Represents the response to a merge pages action request.
       example:
         RemainingTokens: 0
@@ -9419,6 +10236,7 @@ components:
           type: integer
       type: object
     PdfMovePageParameters:
+      additionalProperties: false
       description: Represents the parameters for a move pages action.
       example:
         SourcePageRange: SourcePageRange
@@ -9442,6 +10260,7 @@ components:
       - SourcePageRange
       type: object
     PdfMovePageResponse:
+      additionalProperties: false
       description: Represents the response to a move page action request.
       example:
         RemainingTokens: 0
@@ -9458,6 +10277,7 @@ components:
           type: integer
       type: object
     PdfOCRParameters:
+      additionalProperties: false
       description: Represents the parameters for an OCR action.
       properties:
         FileId:
@@ -9481,6 +10301,7 @@ components:
       - PageRange
       type: object
     PdfOCRResponse:
+      additionalProperties: false
       description: Represents the response to an OCR action request.
       example:
         RemainingTokens: 0
@@ -9497,6 +10318,7 @@ components:
           type: integer
       type: object
     PdfProtectParameters:
+      additionalProperties: false
       description: Represents the parameters for a protect action.
       example:
         OwnerPassword: OwnerPassword
@@ -9570,6 +10392,7 @@ components:
       - FileId
       type: object
     PdfProtectResponse:
+      additionalProperties: false
       description: Represents the response to a protect action request.
       example:
         RemainingTokens: 0
@@ -9586,6 +10409,7 @@ components:
           type: integer
       type: object
     PdfReadBarcodesParameters:
+      additionalProperties: false
       description: Represents the parameters for a read barcode action.
       example:
         ScanBarcodePDF417: true
@@ -9658,6 +10482,7 @@ components:
       - ImageQualityVeryHigh
       type: string
     PdfReduceParameters:
+      additionalProperties: false
       description: Represents the parameters for a reduce action.
       example:
         RemoveEmbeddedFiles: false
@@ -9823,6 +10648,7 @@ components:
       - UnexpectedError
       type: string
     ReduceErrorInfo:
+      additionalProperties: false
       description: Represents information about an error which caused the failure
         of a reduce action.
       example:
@@ -9860,6 +10686,7 @@ components:
       - BlankPageRemovalFailure
       type: string
     ReduceWarningInfo:
+      additionalProperties: false
       description: Represents information about a warning that occured during a reduce
         action.
       example:
@@ -9887,6 +10714,7 @@ components:
           type: string
       type: object
     PdfReduceResponse:
+      additionalProperties: false
       description: Represents the response to a reduce action request.
       example:
         ContentRemoved: true
@@ -9941,6 +10769,7 @@ components:
           type: integer
       type: object
     PdfRemovePageFormFieldsParameters:
+      additionalProperties: false
       description: Represents the parameters for a remove page form fields action.
       example:
         FileId: FileId
@@ -9958,6 +10787,7 @@ components:
       - PageRange
       type: object
     PdfRemovePageFormFieldsResponse:
+      additionalProperties: false
       description: Represents the response to a remove page form fields action request.
       example:
         RemainingTokens: 0
@@ -9973,7 +10803,47 @@ components:
           format: int64
           type: integer
       type: object
+    PdfRemoveTextParameters:
+      additionalProperties: false
+      description: Represents the parameters for a remove text action.
+      example:
+        RemoveOnlyHiddenText: false
+        FileId: FileId
+        PageRange: PageRange
+      properties:
+        FileId:
+          description: The identifier of the previously uploaded file to be processed.
+          type: string
+        PageRange:
+          description: Specifies the page or the page range whose text shall be removed.
+          type: string
+        RemoveOnlyHiddenText:
+          default: false
+          description: Specifies whether only hidden text shall be removed.
+          type: boolean
+      required:
+      - FileId
+      - PageRange
+      type: object
+    PdfRemoveTextResponse:
+      additionalProperties: false
+      description: Represents the response to a remove text action request.
+      example:
+        RemainingTokens: 0
+        Error:
+          InternalErrorId: InternalErrorId
+          ExtResultStatus: ExtResultStatus
+          ExtResultMessage: ExtResultMessage
+      properties:
+        Error:
+          $ref: '#/components/schemas/Error'
+        RemainingTokens:
+          description: Specifies the number of remaining tokens.
+          format: int64
+          type: integer
+      type: object
     PdfReorderPagesParameters:
+      additionalProperties: false
       description: Represents the parameters for a reorder pages action.
       example:
         PageOrder: PageOrder
@@ -9992,6 +10862,7 @@ components:
       - PageOrder
       type: object
     PdfReorderPagesResponse:
+      additionalProperties: false
       description: Represents the response to a swap pages action request.
       example:
         RemainingTokens: 0
@@ -10008,6 +10879,7 @@ components:
           type: integer
       type: object
     PdfRepairDocumentParameters:
+      additionalProperties: false
       description: Represents the parameters for a repair document action.
       example:
         FileId: FileId
@@ -10019,6 +10891,7 @@ components:
       - FileId
       type: object
     PdfRepairDocumentResponse:
+      additionalProperties: false
       description: Represents the response to a repair document action request.
       example:
         RemainingTokens: 0
@@ -10041,6 +10914,7 @@ components:
           type: string
       type: object
     PdfRotatePageStandardParameters:
+      additionalProperties: false
       description: Represents the parameters for a rotate page standard action.
       example:
         FlipHorizontally: false
@@ -10080,6 +10954,7 @@ components:
       - RotationAngle
       type: object
     PdfRotatePageStandardResponse:
+      additionalProperties: false
       description: Represents the response to a rotate page standard action request.
       example:
         RemainingTokens: 0
@@ -10096,6 +10971,7 @@ components:
           type: integer
       type: object
     PdfSaveAsJPEGParameters:
+      additionalProperties: false
       description: Represents the parameters for a save as JPEG acion.
       properties:
         FileId:
@@ -10135,6 +11011,7 @@ components:
       - FileId
       type: object
     PdfSaveAsJPEGResponse:
+      additionalProperties: false
       description: Represents the response to a save as JPEG action request.
       example:
         RemainingTokens: 0
@@ -10165,6 +11042,7 @@ components:
           type: array
       type: object
     PdfSaveAsPNGParameters:
+      additionalProperties: false
       description: Represents the parameters for a save as PNG acion.
       properties:
         FileId:
@@ -10205,6 +11083,7 @@ components:
       - FileId
       type: object
     PdfSaveAsPNGResponse:
+      additionalProperties: false
       description: Represents the response to a save as PNG action request.
       example:
         RemainingTokens: 0
@@ -10235,6 +11114,7 @@ components:
           type: array
       type: object
     PdfSaveAsTIFFParameters:
+      additionalProperties: false
       description: Represents the parameters for a save as TIFF action.
       properties:
         FileId:
@@ -10277,6 +11157,7 @@ components:
       - FileId
       type: object
     PdfSaveAsTIFFResponse:
+      additionalProperties: false
       description: Represents the response to a save as TIFF action request.
       example:
         RemainingTokens: 0
@@ -10307,6 +11188,7 @@ components:
           type: array
       type: object
     PdfSaveAsTIFFMultipageParameters:
+      additionalProperties: false
       description: Represents the parameters for a save as TIFF multipage action.
       properties:
         FileId:
@@ -10344,6 +11226,7 @@ components:
       - FileId
       type: object
     PdfSaveAsTIFFMultipageResponse:
+      additionalProperties: false
       description: Represents the response to a save as TIFF multipage action request.
       example:
         ImageData: ImageData
@@ -10373,6 +11256,7 @@ components:
           type: string
       type: object
     PdfSaveDocumentParameters:
+      additionalProperties: false
       description: Represents the parameters for a save document action.
       example:
         FileId: FileId
@@ -10384,6 +11268,7 @@ components:
       - FileId
       type: object
     PdfSaveDocumentResponse:
+      additionalProperties: false
       description: Represents the response to a save document action request.
       example:
         FileName: FileName
@@ -10413,6 +11298,7 @@ components:
           type: string
       type: object
     PdfScalePageParameters:
+      additionalProperties: false
       description: Represents the parameters for a scale page action.
       example:
         FileId: FileId
@@ -10444,6 +11330,7 @@ components:
       - ScaleY
       type: object
     PdfScalePageResponse:
+      additionalProperties: false
       description: Represents the response to a scale page action request.
       example:
         RemainingTokens: 0
@@ -10460,6 +11347,7 @@ components:
           type: integer
       type: object
     PdfSetInfoParameters:
+      additionalProperties: false
       description: Represents the parameters for a set info action.
       example:
         Keywords: Keywords
@@ -10513,6 +11401,7 @@ components:
       - FileId
       type: object
     PdfSetInfoResponse:
+      additionalProperties: false
       description: Represents the response to a set info action request.
       example:
         RemainingTokens: 0
@@ -10558,6 +11447,7 @@ components:
       - OC
       type: string
     PdfSetInitialViewParameters:
+      additionalProperties: false
       description: Represents the parameters for a set initial view action.
       example:
         CenterWindow: false
@@ -10631,6 +11521,7 @@ components:
       - FileId
       type: object
     PdfSetInitialViewResponse:
+      additionalProperties: false
       description: Represents the response to a set initial view action request.
       example:
         RemainingTokens: 0
@@ -10657,6 +11548,7 @@ components:
       - ArtBox
       type: string
     PdfSetPageBoxParameters:
+      additionalProperties: false
       description: Represents the parameters for a SetPageBox action.
       example:
         Left: 0.8008282
@@ -10704,6 +11596,7 @@ components:
       - Top
       type: object
     PdfSetPageBoxResponse:
+      additionalProperties: false
       description: Represents the response to a SetPageBox action request.
       example:
         RemainingTokens: 0
@@ -10720,6 +11613,7 @@ components:
           type: integer
       type: object
     PdfSetPasswordParameters:
+      additionalProperties: false
       description: Represents the parameters for an unprotect action.
       example:
         FileId: FileId
@@ -10737,6 +11631,7 @@ components:
       - Password
       type: object
     PdfSetPasswordResponse:
+      additionalProperties: false
       description: Represents the response to an unprotect action request.
       example:
         RemainingTokens: 0
@@ -10760,6 +11655,7 @@ components:
       - SplitByTopLevelBookmarks
       type: string
     PdfSplitParameters:
+      additionalProperties: false
       description: Represents the parameters for a split action.
       example:
         FileId: FileId
@@ -10788,6 +11684,7 @@ components:
       - SplitValue
       type: object
     PdfSplitResponse:
+      additionalProperties: false
       description: Represents the response to a split action request.
       example:
         RemainingTokens: 0
@@ -10827,6 +11724,7 @@ components:
           type: array
       type: object
     PdfSwapPagesParameters:
+      additionalProperties: false
       description: Represents the parameters for a swap pages action.
       example:
         Page1: 0
@@ -10850,6 +11748,7 @@ components:
       - Page2
       type: object
     PdfSwapPagesResponse:
+      additionalProperties: false
       description: Represents the response to a swap pages action request.
       example:
         RemainingTokens: 0
@@ -10866,6 +11765,7 @@ components:
           type: integer
       type: object
     PdfUnprotectParameters:
+      additionalProperties: false
       description: Represents the parameters for an unprotect action.
       example:
         FileId: FileId
@@ -10882,6 +11782,7 @@ components:
       - Password
       type: object
     PdfUnprotectResponse:
+      additionalProperties: false
       description: Represents the response to an unprotect action request.
       example:
         RemainingTokens: 0
@@ -10903,12 +11804,23 @@ components:
           description: The data of the document.
           format: binary
           type: string
+        loadDocumentParameters:
+          $ref: '#/components/schemas/LoadDocumentParameters'
+      required:
+      - fileData
+      type: object
+    inline_object_1:
+      properties:
+        fileData:
+          description: The data of the document.
+          format: binary
+          type: string
         loadImageParameters:
           $ref: '#/components/schemas/LoadImageParameters'
       required:
       - fileData
       type: object
-    inline_object_1:
+    inline_object_2:
       properties:
         fileData:
           description: The data of the document.
